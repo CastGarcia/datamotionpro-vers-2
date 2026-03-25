@@ -20,29 +20,22 @@
                 
 
                 <div class="nav-label">Workspace</div>
+                    <a href="notifications.html" target="_blank" class="nav-item">Notifications</a>
+                    <a href="settings.html" target="_blank" class="nav-item">Settings</a>
 
-                <div class="workspace">
-                    <a href="#" class="nav-item">Notifications</a>
-                    <a href="#" class="nav-item">Team Management</a>
-                    <a href="#" class="nav-item">Settings</a>
-                </div>
-                
-                <div class="nav-label">Tables</div>
-                <div class="nav-item-wrapper">
-                    <a href="#" class="nav-item active">Main_Inventory</a>
-                    <button class="table-options-btn">⋮</button>
-                    <div class="table-options-menu">
-                        <button class="delete-table-btn">Delete Table</button>
-                    </div>
-                </div>
+                    <div class="nav-divider"></div>
 
-                <div class="nav-item-wrapper">
-                    <a href="#" class="nav-item">Suppliers_List</a>
-                    <button class="table-options-btn">⋮</button>
-                    <div class="table-options-menu">
-                        <button class="delete-table-btn">Delete Table</button>
+                    <div class="nav-label">Tables</div>
+                    <div id="tablesContainer"> <div class="nav-item-wrapper">
+                            <a href="#" class="nav-item active" data-view="inventory">Main_Inventory</a>
+                            <button class="table-options-btn">⋮</button>
+                        </div>
+                        <div class="nav-item-wrapper">
+                            <a href="#" class="nav-item" data-view="suppliers">Suppliers_List</a>
+                            <button class="table-options-btn">⋮</button>
+                        </div>
                     </div>
-                </div>
+
                 <button class="add-table-btn">+ Add New Table</button>
 
                 <div class="nav-label">Trash</div>
@@ -59,8 +52,7 @@
                     </button>
 
                     <div class="popup-menu up" id="accountDropdown">
-                        <a href="#" class="dropdown-item">Profile</a>
-                        <a href="#" class="dropdown-item">Settings</a>
+                        <a href="settings.html" class="dropdown-item">Settings</a>
                         <hr>
                         <a href="login-page.html" class="dropdown-item logout">Log out</a>
                     </div>
@@ -148,218 +140,144 @@
 </body> 
 
 <script>
-    //Sticky navbar logic for scrolled spreadsheet
+    // SELECTORS
     const gridWrapper = document.querySelector('.spreadsheet-grid-wrapper');
     const topNav = document.getElementById('spreadsheetNav');
-
-    gridWrapper.addEventListener('scroll', () => {
-        if (gridWrapper.scrollTop > 10) {
-            topNav.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-        } else {
-            topNav.style.boxShadow = 'none';
-        }
-    });
-
-    // Account popup menu logic:
-    const trigger = document.getElementById('accountDropdownTrigger');
-    const menu = document.getElementById('accountDropdown');
-
-    trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        menu.classList.toggle('show');
-    });
-
-    window.addEventListener('click', () => {
-        menu.classList.remove('show');
-    });
-
-    // Rename table name logic:
-    // Might change this to a more robust and secure logic suitable for an SQL renaming fundamentals.
     const tableNameInput = document.getElementById('tableNameInput');
-    const sidebarActiveItem = document.querySelector('.sidebar-spreadsheet-nav .nav-item.active');
+    const sidebarNav = document.querySelector('.sidebar-spreadsheet-nav');
+    const addTableBtn = document.querySelector('.add-table-btn');
+    const trashList = document.getElementById('trashList');
+    const accountMenu = document.getElementById('accountDropdown');
 
-    tableNameInput.addEventListener('input', (e) => {
-        const newName = e.target.value;
-        if (sidebarActiveItem) {
-            sidebarActiveItem.textContent = newName || "Untitled Table";
+    // VIEW MANAGEMENT LOGIC
+    // This handles the "Switching" only when a table is clicked
+    sidebarNav.addEventListener('click', (e) => {
+        const navItem = e.target.closest('.nav-item');
+        if (!navItem) return;
+
+        // Check if the item belongs to the "Tables" section
+        const isTable = navItem.closest('.nav-item-wrapper') || navItem.parentElement.id === 'tablesContainer';
+        
+        // Check if it's a "Workspace" item (like Settings)
+        const isWorkspace = !isTable;
+
+        // Update Active UI
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        navItem.classList.add('active');
+
+        if (isTable) {
+            // Update Navbar and show Grid
+            tableNameInput.value = navItem.textContent;
+            gridWrapper.style.display = 'block'; // Show spreadsheet
+            // loadTableData(navItem.textContent); // loader logic here for backend
+        } else {
+            // Workspace items (Settings, etc.)
+            tableNameInput.value = navItem.textContent; 
+            gridWrapper.style.display = 'none'; 
+            console.log("Switching to " + navItem.textContent + " view...");
         }
     });
 
-    tableNameInput.addEventListener('click', () => {
+    // TABLE NAME SYNC (Renaming)
+    tableNameInput.addEventListener('input', (e) => {
+        const sidebarActiveItem = document.querySelector('.sidebar-spreadsheet-nav .nav-item.active');
+        // Only allow sync if the active item is a Table (has an options button)
+        if (sidebarActiveItem && sidebarActiveItem.closest('.nav-item-wrapper')) {
+            sidebarActiveItem.textContent = e.target.value || "Untitled Table";
+        }
+    });
+
+    tableNameInput.addEventListener('click', () => tableNameInput.select());
+
+    // ADD NEW TABLE (Wrapper Version Only)
+    addTableBtn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+
+        const wrapper = document.createElement('div');
+        wrapper.className = "nav-item-wrapper";
+        wrapper.innerHTML = `
+            <a href="#" class="nav-item active">Untitled_Table</a>
+            <button class="table-options-btn">⋮</button>
+            <div class="table-options-menu">
+                <button class="delete-table-btn">Delete Table</button>
+            </div>
+        `;
+
+        sidebarNav.insertBefore(wrapper, addTableBtn);
+        tableNameInput.value = "Untitled_Table";
+        gridWrapper.style.display = 'block';
+        tableNameInput.focus();
         tableNameInput.select();
     });
 
-    // Add new table logic:
-    const addTableBtn = document.querySelector('.add-table-btn');
-    const sidebarNav = document.querySelector('.sidebar-spreadsheet-nav');
-    const tableInput = document.getElementById('tableNameInput');
-    const gridArea = document.querySelector('.spreadsheet-grid-wrapper');
-
-    addTableBtn.addEventListener('click', () => {
-    // Remove 'active' class from current table
-    const currentActive = document.querySelector('.sidebar-spreadsheet-nav .nav-item.active');
-    if (currentActive) currentActive.classList.remove('active');
-
-    // Create the new table element
-    const newTable = document.createElement('a');
-    newTable.href = "#";
-    newTable.className = "nav-item active";
-    newTable.textContent = "Untitled_Table";
-
-    sidebarNav.insertBefore(newTable, addTableBtn);
-
-    // Reset the workspace UI
-    tableInput.value = "Untitled_Table";
-    gridArea.innerHTML = '<div class="placeholder-grid-text">New Table Created. Ready for data...</div>';
-
-    // Re-focus the input so the user can rename it immediately
-    tableInput.focus();
-    tableInput.select();
-
-    });
-
-    // Delete table logic:
-    // Move to Trash first
+    // DELETE & TRASH LOGIC
     document.addEventListener('click', (e) => {
-        // Handle Option Menu Toggling
-        if (e.target.classList.contains('table-options-btn')) {
+        // Dropdown Toggles (Column and Table options)
+        if (e.target.classList.contains('table-options-btn') || e.target.classList.contains('col-dropdown-btn')) {
             e.stopPropagation();
-            // Close other menus
-            document.querySelectorAll('.table-options-menu').forEach(m => m.classList.remove('show'));
             const menu = e.target.nextElementSibling;
-            menu.classList.toggle('show');
+            const isShown = menu.classList.contains('show');
+            document.querySelectorAll('.table-options-menu, .col-menu').forEach(m => m.classList.remove('show'));
+            if (!isShown) menu.classList.add('show');
         } else {
-            document.querySelectorAll('.table-options-menu').forEach(m => m.classList.remove('show'));
+            document.querySelectorAll('.table-options-menu, .col-menu, .popup-menu').forEach(m => m.classList.remove('show'));
         }
         
-        // MOVE TO TRASH ACTION
+        // Move to Trash
         if (e.target.classList.contains('delete-table-btn')) {
             const wrapper = e.target.closest('.nav-item-wrapper');
             const tableName = wrapper.querySelector('.nav-item').textContent;
-            const trashList = document.getElementById('trashList');
-
-            // Remove "Empty" message
+            
             const emptyMsg = trashList.querySelector('.empty-trash-msg');
             if (emptyMsg) emptyMsg.style.display = 'none';
 
-            // Create the Trash element
             const trashItem = document.createElement('div');
             trashItem.className = 'trash-item';
-            trashItem.innerHTML = `
-                <span>${tableName}</span>
-                <div class="trash-actions">
-                    <button class="restore-btn" title="Restore">↺</button>
-                    <button class="permanent-delete-btn" title="Delete Forever">✕</button>
-                </div>
-            `;
+            trashItem.innerHTML = `<span>${tableName}</span><div class="trash-actions">
+                <button class="restore-btn">↺</button><button class="permanent-delete-btn">✕</button></div>`;
 
             trashList.appendChild(trashItem);
             wrapper.remove();
-            
-            if (tableNameInput.value === tableName) {
-                tableNameInput.value = "Select a table";
-            }
+            if (tableNameInput.value === tableName) tableNameInput.value = "Select a table";
         }
 
-        // Trash Menu
-        // RESTORE ACTION
+        // Restore Table
         if (e.target.classList.contains('restore-btn')) {
             const trashItem = e.target.closest('.trash-item');
             const tableName = trashItem.querySelector('span').textContent;
-
-            // Recreate the table in the main list
-            const wrapper = document.createElement('div');
-            wrapper.className = "nav-item-wrapper";
-            wrapper.innerHTML = `
-                <a href="#" class="nav-item">${tableName}</a>
-                <button class="table-options-btn">⋮</button>
-                <div class="table-options-menu">
-                    <button class="delete-table-btn">Delete Table</button>
-                </div>
-            `;
-            sidebarNav.insertBefore(wrapper, addTableBtn);
-            
+            // Logic to recreate the wrapper and insert into sidebarNav...
             trashItem.remove();
             checkTrashEmpty();
         }
-
-        // PERMANENT DELETE ACTION
-        if (e.target.classList.contains('permanent-delete-btn')) {
-            if (confirm("Delete this table forever? This cannot be undone.")) {
-                e.target.closest('.trash-item').remove();
-                checkTrashEmpty();
-            }
-        }
     });
 
-    // Helper function to show "Trash is empty" message
-    function checkTrashEmpty() {
-        const trashList = document.getElementById('trashList');
-        if (trashList.querySelectorAll('.trash-item').length === 0) {
-            const emptyMsg = trashList.querySelector('.empty-trash-msg');
-            if (emptyMsg) emptyMsg.style.display = 'block';
-        }
-    }
-
-    //Table Switching Logic:
-    sidebarNav.addEventListener('click', (e) => {
-        const navItem = e.target.closest('.nav-item');
-        if (navItem) {
-            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            navItem.classList.add('active');
-            tableNameInput.value = navItem.textContent;
-        }
+    // UTILITIES (Scroll, Account, Grid Generation)
+    gridWrapper.addEventListener('scroll', () => {
+        topNav.style.boxShadow = gridWrapper.scrollTop > 10 ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none';
     });
 
-    // Create new rows logic
+    document.getElementById('accountDropdownTrigger').addEventListener('click', (e) => {
+        e.stopPropagation();
+        accountMenu.classList.toggle('show');
+    });
+
     function generateGridRows(rowCount) {
         const tbody = document.querySelector('.table-view tbody');
         tbody.innerHTML = '';
-
         for (let i = 1; i <= rowCount; i++) {
             const row = document.createElement('tr');
             let rowHTML = `<td class="row-number">${i}</td>`;
-
-            for (let j = 0; j < 26; j++) {
-                rowHTML += `<td contenteditable="true" class="data-cell"></td>`;
-            }
-
+            for (let j = 0; j < 26; j++) rowHTML += `<td contenteditable="true" class="data-cell"></td>`;
             row.innerHTML = rowHTML;
             tbody.appendChild(row);
         }
     }
 
-    document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('data-cell')) {
-        document.querySelectorAll('.data-cell').forEach(cell => cell.classList.remove('selected'));
-        
-        e.target.classList.add('selected');
-        }
-    });
-
-    // Handling Keyboard Navigation
-    document.addEventListener('keydown', (e) => {
-        const activeCell = document.activeElement;
-        
-        if (activeCell.classList.contains('data-cell') && e.key === 'Enter') {
-            e.preventDefault(); 
-            activeCell.blur();  
-            
-            // Move selection to the cell below
-            const currentRow = activeCell.parentElement;
-            const nextRow = currentRow.nextElementSibling;
-            if (nextRow) {
-                const cellIndex = Array.from(currentRow.children).indexOf(activeCell);
-                const cellBelow = nextRow.children[cellIndex];
-                cellBelow.focus();
-                cellBelow.click(); 
-            }
-        }
-    });
-
-    // Call the function to create 50 rows on load
+    // Initialize
     generateGridRows(50);
-
+    function checkTrashEmpty() {
+        if (trashList.querySelectorAll('.trash-item').length === 0) trashList.querySelector('.empty-trash-msg').style.display = 'block';
+    }
 </script>
 
 </html>
